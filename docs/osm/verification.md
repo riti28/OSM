@@ -21,6 +21,20 @@ Zoomed 100 → 150 → 75 percent and resized 1440×1000 → 1280×900. Saved st
 The production server also loaded all 14 pages using the local PDF.js worker, imported the validated JSON, and saved the restored annotations successfully. Unsupported-schema JSON was rejected while preserving all seven annotations. Fit Width and Fit Page worked; the PDF canvas and Konva overlay had identical x, y, width and height in Fit Width. No browser error/warning logs were recorded during these production checks.
 
 ## Remaining owner QA
-Add anonymized sample-answer-book.pdf and the two UX references described in README. Validate a real scanned answer book (including 10–50 pages and unusually large scans); this run used a public vector PDF. Visual matching awaits the supplied UX images.
+Add anonymized sample-answer-book.pdf. Validate a real scanned answer book (including 10–50 pages and unusually large scans); browser QA used a public vector PDF. E03/E04 UX references have now been supplied and applied to the annotation workspace.
 
 Local PDF selection must be repeated after refresh; saved annotation JSON is retained. Temporary localStorage has one document slot; use exported JSON for backups. Rotation UI and final PDF export remain outside this phase.
+
+
+## E04 UX update - 17 October 2026
+The owner confirmed the current annotation-workspace scope. E03/E04 were extracted from the supplied ZIP into docs/osm/ux/examiner. The route was rebuilt to match E04 at 1536 x 1024 and checked at 1366 x 900. No screenshot is used as a page background or production asset.
+
+Added working Pan, object Eraser, Rectangle, Arrow, Line, formatted Text, circle/star stamps, panel tabs, quick-comment presets/management and keyboard shortcuts. Inspector styling also edits selected annotations. Existing JSON schema 1 remains readable; additional annotation types and optional normalized text-format fields are validated and serialized explicitly.
+
+Final checks: ESLint passed, TypeScript passed, all 44 unit tests passed, and the production build passed. Browser QA covered every tool, backwards arrows, horizontal lines, bold/italic/underlined text, selected-text font editing and undo, eraser/undo/redo, panning by 150 px, the Pen shortcut, tab navigation and quick-comment management.
+
+Created 12 annotations spanning all 11 annotation types (including both stamp variants). Exported JSON before and after selected-style edit/undo, zoom 150 to 75 percent, viewport resize, refresh, PDF reselect and Load Annotations compared exactly. Production import restored all 12 annotations and saved successfully; no warning/error logs were captured.
+
+Actual production screenshot: ignored .qa/ux-e04-workspace.png. The sample PDF remains absent; the empty state retains the E04 layout with disabled tools and an explicit Open PDF action.
+
+Lazy-rendering observers were scoped to their PDF/thumbnail scroll containers after preview capture exposed a window-intersection edge case. The production build and focused lint checks passed after this correction.

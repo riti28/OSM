@@ -9,7 +9,7 @@ export function useNearby(margin = "600px") {
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    const observer = new IntersectionObserver(entries => setNearby(entries[0].isIntersecting), { rootMargin: margin });
+    const observer = new IntersectionObserver(entries => setNearby(entries[0].isIntersecting), { root: node.closest("[data-pdf-scroll-root]"), rootMargin: margin });
     observer.observe(node);
     return () => observer.disconnect();
   }, [margin]);

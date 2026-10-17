@@ -1,12 +1,12 @@
 import { memo, useEffect, useRef } from "react";
-import { Ellipse, Group, Line, Rect, Text, Transformer } from "react-konva";
+import { Arrow, Ellipse, Group, Line, Rect, Star, Text, Transformer } from "react-konva";
 import type Konva from "konva";
 import type { Annotation } from "@/types/osm/annotation";
 import { denormalizePoints, denormalizeRect, normalizeRect, clamp } from "@/lib/osm/coordinates";
 import { transformAnnotation } from "@/lib/osm/annotations/annotationFactory";
 
-type Props = { annotation: Annotation; width: number; height: number; selected: boolean; selectable: boolean;
-  onSelect: (id: string | null) => void; onUpdate: (annotation: Annotation) => void; onComment: (annotation: Annotation) => void; };
+type Props = { annotation: Annotation; width: number; height: number; selected: boolean; selectable: boolean; erasable?: boolean;
+  onSelect: (id: string | null) => void; onUpdate: (annotation: Annotation) => void; onComment: (annotation: Annotation) => void; onErase: (annotation: Annotation) => void; };
 function AnnotationRenderer(p: Props) {
   const group = useRef<Konva.Group>(null), transformer = useRef<Konva.Transformer>(null);
   const a = p.annotation, size = { width: p.width, height: p.height }, b = denormalizeRect(a.bounds, size);
@@ -26,12 +26,19 @@ function AnnotationRenderer(p: Props) {
     node.scale({ x: 1, y: 1 });
     p.onUpdate(transformAnnotation(a, next));
   }
+  function choose(event: Konva.KonvaEventObject<MouseEvent | TouchEvent>) {
+    event.cancelBubble = true;
+    if (p.erasable) p.onErase(a);
+    else if (p.selectable) { p.onSelect(a.id); if (a.type === "comment") p.onComment(a); }
+  }
+  const points = "points" in a ? denormalizePoints(a.points, size).flatMap(point => [point.x - b.x, point.y - b.y]) : [];
   return <>
     <Group ref={group} id={a.id} name="annotation" x={b.x} y={b.y} width={w} height={h}
       opacity={a.style.opacity} draggable={p.selectable}
       dragBoundFunc={position => ({ x: clamp(position.x, 0, p.width - w), y: clamp(position.y, 0, p.height - h) })}
-      onClick={event => { event.cancelBubble = true; if (p.selectable) { p.onSelect(a.id); if (a.type === "comment") p.onComment(a); } }}
-      onTap={event => { event.cancelBubble = true; if (p.selectable) { p.onSelect(a.id); if (a.type === "comment") p.onComment(a); } }}
+      onClick={choose} onTap={choose}
+      onDblClick={event => { event.cancelBubble = true; if (p.selectable && a.type === "text") p.onComment(a); }}
+      onDblTap={event => { event.cancelBubble = true; if (p.selectable && a.type === "text") p.onComment(a); }}
       onDragStart={() => p.onSelect(a.id)} onDragEnd={commit} onTransformEnd={commit}>
       <Rect width={w} height={h} fill="transparent" />
       {a.type === "tick" && <Line {...lineProps} points={[w * 0.08, h * 0.5, w * 0.38, h * 0.88, w * 0.94, h * 0.08]} />}
@@ -39,15 +46,23 @@ function AnnotationRenderer(p: Props) {
         <Line {...lineProps} points={[w * 0.9, h * 0.1, w * 0.1, h * 0.9]} /></>}
       {a.type === "circle" && <Ellipse x={w / 2} y={h / 2} radiusX={Math.max(0.5, w / 2 - stroke / 2)}
         radiusY={Math.max(0.5, h / 2 - stroke / 2)} {...lineProps} />}
+      {a.type === "rectangle" && <Rect x={stroke / 2} y={stroke / 2} width={Math.max(0, w - stroke)} height={Math.max(0, h - stroke)} {...lineProps}/>}
       {a.type === "highlight" && <Rect width={w} height={h} fill={a.style.color} />}
-      {a.type === "pen" && <Line {...lineProps} tension={0.15}
-        points={denormalizePoints(a.points, size).flatMap(point => [point.x - b.x, point.y - b.y])} />}
+      {(a.type === "pen" || a.type === "line") && <Line {...lineProps} tension={a.type === "pen" ? 0.15 : 0} points={points} />}
+      {a.type === "arrow" && <Arrow {...lineProps} fill={a.style.color} points={points} pointerLength={Math.max(8, stroke * 4)} pointerWidth={Math.max(7, stroke * 3)}/>}
+      {a.type === "text" && <Text text={a.text} width={w} height={h} fill={a.style.color} fontFamily="Arial"
+        fontSize={(a.style.fontSize ?? 12 / 612) * p.width} lineHeight={1.3}
+        fontStyle={[a.style.bold ? "bold" : "", a.style.italic ? "italic" : ""].filter(Boolean).join(" ") || "normal"}
+        textDecoration={a.style.underline ? "underline" : ""}/>}
+      {a.type === "stamp" && (a.variant === "star" ? <Star x={w / 2} y={h / 2} numPoints={5} innerRadius={Math.min(w, h) * 0.22}
+        outerRadius={Math.min(w, h) * 0.47} {...lineProps}/> : <><Ellipse x={w / 2} y={h / 2} radiusX={Math.max(1, w / 2 - stroke)}
+          radiusY={Math.max(1, h / 2 - stroke)} {...lineProps}/><Text text={a.text} width={w} height={h} align="center" verticalAlign="middle" fontSize={Math.min(w, h) * 0.62} fill={a.style.color}/></>)}
       {a.type === "comment" && <><Rect width={w} height={h} fill={a.style.color} cornerRadius={w * 0.18} />
         <Text text="≡" width={w} height={h} align="center" verticalAlign="middle" fill="white" fontSize={Math.min(w, h) * 0.8} /></>}
     </Group>
     {p.selected && p.selectable && <Transformer ref={transformer} rotateEnabled={false} flipEnabled={false}
-      resizeEnabled={a.type !== "pen" && a.type !== "comment"} padding={4}
-      borderStroke="#315ad9" anchorStroke="#315ad9" anchorFill="#ffffff" anchorSize={8}
+      resizeEnabled={a.type !== "pen" && a.type !== "comment" && b.width > 0 && b.height > 0} padding={4}
+      borderStroke="#005dff" anchorStroke="#005dff" anchorFill="#ffffff" anchorSize={8}
       boundBoxFunc={(oldBox, nextBox) => nextBox.width < 8 || nextBox.height < 8 || nextBox.x < 0 || nextBox.y < 0 ||
         nextBox.x + nextBox.width > p.width || nextBox.y + nextBox.height > p.height ? oldBox : nextBox} />}
   </>;

@@ -32,6 +32,7 @@ export function usePDFDocument(url: string) {
         const missing = error instanceof Error && (error.name === "MissingPDFException" || /404|missing pdf/i.test(error.message));
         const message = missing && url === "/osm-demo/sample-answer-book.pdf"
           ? "Sample PDF not found. Add: public/osm-demo/sample-answer-book.pdf"
+          : url.startsWith("blob:") ? "Unable to open this PDF. Choose the file again, or select another valid PDF."
           : "Unable to open this PDF. Check the file or URL, and retry. " + (error instanceof Error ? error.message : "");
         setLoaded({ key, error: message });
       }

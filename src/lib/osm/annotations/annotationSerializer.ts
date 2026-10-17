@@ -16,15 +16,19 @@ function validAnnotation(value: unknown, pageCount: number): value is Annotation
       b.x + b.width > 1 + 1e-9 || b.y + b.height > 1 + 1e-9) return false;
   if (typeof s.color !== "string" || !/^#[0-9a-f]{6}$/i.test(s.color) ||
       !unit(s.opacity) || !finite(s.strokeWidth) || s.strokeWidth < 0 || s.strokeWidth > 0.05) return false;
-  if (value.type === "pen") {
+  if (s.fontSize !== undefined && (!finite(s.fontSize) || s.fontSize <= 0 || s.fontSize > 0.2)) return false;
+  if ([s.bold, s.italic, s.underline].some(value => value !== undefined && typeof value !== "boolean")) return false;
+  if (value.type === "pen" || value.type === "line" || value.type === "arrow") {
     if (!Array.isArray(value.points) || value.points.length < 2 || value.points.length > MAX_POINTS) return false;
+    if (value.type !== "pen" && value.points.length !== 2) return false;
     return value.points.every(p => object(p) && unit(p.x) && unit(p.y) &&
       p.x >= (b.x as number) - 1e-9 && p.y >= (b.y as number) - 1e-9 &&
       p.x <= (b.x as number) + (b.width as number) + 1e-9 && p.y <= (b.y as number) + (b.height as number) + 1e-9);
   }
   if (b.width <= 0 || b.height <= 0) return false;
-  if (value.type === "comment") return typeof value.text === "string" && value.text.trim().length > 0 && value.text.length <= 5000;
-  return ["tick", "cross", "circle", "highlight"].includes(String(value.type));
+  if (value.type === "stamp") return (value.variant === "circle" || value.variant === "star") && typeof value.text === "string" && value.text.trim().length > 0 && value.text.length <= 6;
+  if (value.type === "comment" || value.type === "text") return typeof value.text === "string" && value.text.trim().length > 0 && value.text.length <= 5000;
+  return ["tick", "cross", "circle", "highlight", "rectangle"].includes(String(value.type));
 }
 export function deserializeAnnotations(json: string, expected?: DocumentInfo): AnnotationFile {
   if (json.length > 20_000_000) throw new Error("Annotation file exceeds the 20 MB limit.");
@@ -46,9 +50,14 @@ export function deserializeAnnotations(json: string, expected?: DocumentInfo): A
   // Rebuild allowed fields: never pass arbitrary imported properties into Konva.
   const annotations = (data.annotations as Annotation[]).map(a => {
     const base = { id: a.id, pageNumber: a.pageNumber, bounds: { x: a.bounds.x, y: a.bounds.y, width: a.bounds.width, height: a.bounds.height },
-      style: { color: a.style.color, strokeWidth: a.style.strokeWidth, opacity: a.style.opacity }, createdAt: a.createdAt, updatedAt: a.updatedAt };
-    if (a.type === "pen") return { ...base, type: a.type, points: a.points.map(p => ({ x: p.x, y: p.y })) };
-    if (a.type === "comment") return { ...base, type: a.type, text: a.text };
+      style: { color: a.style.color, strokeWidth: a.style.strokeWidth, opacity: a.style.opacity,
+        ...(a.style.fontSize !== undefined ? { fontSize: a.style.fontSize } : {}),
+        ...(a.style.bold !== undefined ? { bold: a.style.bold } : {}),
+        ...(a.style.italic !== undefined ? { italic: a.style.italic } : {}),
+        ...(a.style.underline !== undefined ? { underline: a.style.underline } : {}) }, createdAt: a.createdAt, updatedAt: a.updatedAt };
+    if (a.type === "pen" || a.type === "line" || a.type === "arrow") return { ...base, type: a.type, points: a.points.map(p => ({ x: p.x, y: p.y })) };
+    if (a.type === "stamp") return { ...base, type: a.type, variant: a.variant, text: a.text };
+    if (a.type === "comment" || a.type === "text") return { ...base, type: a.type, text: a.text };
     return { ...base, type: a.type };
   });
   return { schemaVersion: 1, documentId: data.documentId, pageCount: data.pageCount, annotations };

@@ -7,9 +7,9 @@ import type { AnnotationType } from "../src/types/osm/annotation";
 const documentInfo = { id: "test-document-fingerprint", pageCount: 4 };
 const make = (type: AnnotationType = "tick", page = 3) => createAnnotation(type, page,
   { x: 0.2, y: 0.3, width: 0.1, height: 0.15 }, undefined,
-  { points: [{ x: 0.2, y: 0.3 }, { x: 0.3, y: 0.45 }], text: "Please explain this step." });
+  { points: [{ x: 0.2, y: 0.3 }, { x: 0.3, y: 0.45 }], text: type === "stamp" ? "1" : "Please explain this step." });
 describe("application-owned annotation JSON", () => {
-  it.each<AnnotationType>(["tick", "cross", "circle", "pen", "highlight", "comment"])("round trips %s", type => {
+  it.each<AnnotationType>(["tick", "cross", "circle", "pen", "highlight", "comment", "rectangle", "line", "arrow", "text", "stamp"])("round trips %s", type => {
     const annotation = make(type), json = serializeAnnotations({ 3: [annotation] }, documentInfo);
     expect(deserializeAnnotations(json, documentInfo).annotations).toEqual([annotation]);
     expect(JSON.parse(json).schemaVersion).toBe(1);
@@ -74,5 +74,30 @@ describe("editing and logical history", () => {
   it("has safe empty undo/redo", () => {
     expect(historyReducer(initialHistory, { type: "UNDO" })).toBe(initialHistory);
     expect(historyReducer(initialHistory, { type: "REDO" })).toBe(initialHistory);
+  });
+});
+
+
+describe("reference annotation tools", () => {
+  it.each(["line", "arrow"] as const)("preserves backwards and horizontal %s endpoints", type => {
+    const a = createAnnotation(type, 1, { x: 0.2, y: 0.3, width: 0.3, height: 0 }, undefined,
+      { points: [{ x: 0.5, y: 0.3 }, { x: 0.2, y: 0.3 }] });
+    const moved = transformAnnotation(a, { x: 0.4, y: 0.5, width: 0.3, height: 0 });
+    const restored = deserializeAnnotations(serializeAnnotations({ 1: [moved] }, documentInfo)).annotations[0];
+    expect(restored).toEqual(moved);
+    if ("points" in restored) { expect(restored.points[0].x).toBeCloseTo(0.7); expect(restored.points[1]).toEqual({ x: 0.4, y: 0.5 }); }
+  });
+  it("keeps text formatting in normalized units", () => {
+    const a = make("text"); a.style = { ...a.style, fontSize: 18 / 612, bold: true, italic: true, underline: true };
+    expect(deserializeAnnotations(serializeAnnotations({ 3: [a] }, documentInfo)).annotations[0]).toEqual(a);
+  });
+  it("round trips a custom star stamp", () => {
+    const a = createAnnotation("stamp", 1, { x: 0.4, y: 0.5, width: 0.06, height: 0.04 }, undefined, { variant: "star", text: "1" });
+    expect(deserializeAnnotations(serializeAnnotations({ 1: [a] }, documentInfo)).annotations[0]).toEqual(a);
+  });
+  it.each([{ fontSize: -1 }, { fontSize: 20 }, { bold: "yes" }, { italic: 1 }, { underline: null }])("rejects malformed text formatting %j", patch => {
+    const a = make("text");
+    const file = { schemaVersion: 1, documentId: documentInfo.id, pageCount: 4, annotations: [{ ...a, style: { ...a.style, ...patch } }] };
+    expect(() => deserializeAnnotations(JSON.stringify(file))).toThrow();
   });
 });
