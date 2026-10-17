@@ -4,7 +4,8 @@ export type HistoryAction =
   | { type: "ADD_ANNOTATION" | "UPDATE_ANNOTATION"; annotation: Annotation }
   | { type: "DELETE_ANNOTATION"; pageNumber: number; id: string }
   | { type: "REPLACE"; pages: AnnotationsByPage }
-  | { type: "UNDO" | "REDO" };
+  | { type: "UNDO" }
+  | { type: "REDO" };
 export const initialHistory: History = { past: [], present: {}, future: [] };
 export function historyReducer(state: History, action: HistoryAction): History {
   if (action.type === "UNDO") {
@@ -24,6 +25,7 @@ export function historyReducer(state: History, action: HistoryAction): History {
     present = { ...state.present, [action.pageNumber]: after };
   } else {
     const { annotation } = action;
+    if (action.type === "ADD_ANNOTATION" && Object.values(state.present).reduce((sum, page) => sum + page.length, 0) >= 10000) return state;
     const before = state.present[annotation.pageNumber] ?? [];
     if (action.type === "UPDATE_ANNOTATION" && !before.some(a => a.id === annotation.id)) return state;
     present = { ...state.present, [annotation.pageNumber]: action.type === "ADD_ANNOTATION"

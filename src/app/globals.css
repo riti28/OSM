@@ -1,4 +1,3 @@
-@import url("data:text/css,");
 :root { --ink:#1e2e32; --muted:#6d7c80; --line:#e1e7e7; --teal:#126c61; --soft:#edf5f2; --paper:#fff; }
 * { box-sizing:border-box; }
 body { margin:0; color:var(--ink); background:#f4f7f6; font-family:Arial,Helvetica,sans-serif; font-size:13px; }

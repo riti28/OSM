@@ -10,3 +10,4 @@ public/osm-demo/*.pdf
 *.log
 test-results/
 .qa/
+.pnpm-store/

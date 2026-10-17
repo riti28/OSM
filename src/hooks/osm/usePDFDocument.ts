@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { PageInfo } from "@/types/osm/pdf";
 
-type Loaded = { key: string; document?: PDFDocumentProxy; pages?: PageInfo[]; error?: string };
+type Loaded = { key: string; document?: PDFDocumentProxy; documentId?: string; pages?: PageInfo[]; error?: string };
 export function usePDFDocument(url: string) {
   const [attempt, setAttempt] = useState(0);
   const key = url + "|" + attempt;
@@ -25,7 +25,8 @@ export function usePDFDocument(url: string) {
           const viewport = page.getViewport({ scale: 1 });
           return { pageNumber: index + 1, width: viewport.width, height: viewport.height, rotation: viewport.rotation };
         }));
-        if (!disposed) setLoaded({ key, document, pages });
+        const documentId = document.fingerprints[0] ?? Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new Uint8Array(await document.getData()))), byte => byte.toString(16).padStart(2, "0")).join("");
+        if (!disposed) setLoaded({ key, document, documentId, pages });
       } catch (error) {
         if (disposed) return;
         const missing = error instanceof Error && (error.name === "MissingPDFException" || /404|missing pdf/i.test(error.message));
@@ -39,6 +40,7 @@ export function usePDFDocument(url: string) {
     return () => { disposed = true; void task?.destroy(); };
   }, [url, key]);
   return { document: loaded.key === key ? loaded.document : undefined,
+    documentId: loaded.key === key ? loaded.documentId : undefined,
     pages: loaded.key === key ? loaded.pages : undefined,
     error: loaded.key === key ? loaded.error : undefined,
     retry: () => setAttempt(value => value + 1) };

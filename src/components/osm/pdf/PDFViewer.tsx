@@ -40,8 +40,8 @@ function CommentEditor({ annotation, onSave, onCancel }: { annotation: Annotatio
     </form>
   </dialog>;
 }
-function Workspace({ document, pages, name, onOpen, retry, dirtyRef }: {
-  document: PDFDocumentProxy; pages: PageInfo[]; name: string; onOpen: () => void; retry: () => void; dirtyRef: React.RefObject<boolean>;
+function Workspace({ document, documentId, pages, name, onOpen, retry, dirtyRef }: {
+  document: PDFDocumentProxy; documentId: string; pages: PageInfo[]; name: string; onOpen: () => void; retry: () => void; dirtyRef: React.RefObject<boolean>;
 }) {
   const [history, dispatch] = useReducer(historyReducer, initialHistory);
   const annotations = history.present;
@@ -56,7 +56,7 @@ function Workspace({ document, pages, name, onOpen, retry, dirtyRef }: {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [savedJson, setSavedJson] = useState<string | null>(null);
   const viewer = useRef<HTMLDivElement>(null), jsonInput = useRef<HTMLInputElement>(null);
-  const documentInfo = useMemo(() => ({ id: document.fingerprints[0], pageCount: document.numPages }), [document]);
+  const documentInfo = useMemo(() => ({ id: documentId, pageCount: document.numPages }), [document, documentId]);
   const json = useMemo(() => serializeAnnotations(annotations, documentInfo), [annotations, documentInfo]);
   const total = Object.values(annotations).reduce((sum, page) => sum + page.length, 0);
   const dirty = savedJson !== json;
@@ -189,7 +189,7 @@ export default function PDFViewer({ pdfUrl }: { pdfUrl: string }) {
   const [local, setLocal] = useState<{ url: string; name: string } | null>(null);
   const input = useRef<HTMLInputElement>(null), dirty = useRef(false);
   const url = local?.url ?? pdfUrl;
-  const { document, pages, error, retry } = usePDFDocument(url);
+  const { document, documentId, pages, error, retry } = usePDFDocument(url);
   const name = local?.name ?? pdfUrl.split("/").pop()?.split("?")[0] ?? "Answer book.pdf";
   useEffect(() => () => { if (local) URL.revokeObjectURL(local.url); }, [local]);
   const open = useCallback(() => input.current?.click(), []);
@@ -198,7 +198,7 @@ export default function PDFViewer({ pdfUrl }: { pdfUrl: string }) {
       onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (!file) return;
         if (dirty.current && !window.confirm("Open another PDF and discard unsaved annotations?")) return;
         setLocal({ url: URL.createObjectURL(file), name: file.name }); }} />
-    {document && pages ? <Workspace key={document.fingerprints[0]} document={document} pages={pages} name={name} onOpen={open} retry={retry} dirtyRef={dirty} /> :
+    {document && documentId && pages ? <Workspace key={documentId} document={document} documentId={documentId} pages={pages} name={name} onOpen={open} retry={retry} dirtyRef={dirty} /> :
       <main className="workspace"><Header name={name} onOpen={open} /><div className="empty-workspace">
         <div className="empty-icon" aria-hidden="true">▤</div><span className="eyebrow">YOUR ANNOTATION WORKSPACE</span>
         <h1>{error ? "Ready for your answer book" : "Opening your document…"}</h1>

@@ -22,3 +22,5 @@ pnpm start
 ```
 
 Development and production builds copy the installed PDF.js worker, fonts, CMaps, and WASM assets into ignored `public/pdfjs/`. No CDN is used. Deploy that generated directory alongside the Next.js build. See [prototype documentation](docs/osm/README.md) for architecture, persistence, and the manual QA checklist.
+
+See [verification results](docs/osm/verification.md) for the checks performed and remaining scanned-document QA.

@@ -32,13 +32,14 @@ function AnnotationCanvas(p: Props) {
       return;
     }
     event.evt.preventDefault();
-    stage.current?.container().setPointerCapture(event.evt.pointerId);
     if (p.tool === "tick" || p.tool === "cross" || p.tool === "comment") {
       const annotation = createAnnotation(p.tool, p.pageNumber, { ...at, width: 0.045, height: 0.032 }, p.style);
       if (p.tool === "comment") p.onComment(annotation);
       else p.onAdd(annotation);
       return;
     }
+    // Capture the event target inside Konva content, so move/up still bubble to Stage.
+    if (event.evt.target instanceof Element) event.evt.target.setPointerCapture(event.evt.pointerId);
     active.current = { start: at, points: [at], id: crypto.randomUUID(), draft: null };
   }
   function move() {
