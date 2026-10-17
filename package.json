@@ -1,0 +1,31 @@
+{
+  "name": "breathe4school-osm",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "assets": "node scripts/copy-pdf-assets.mjs",
+    "dev": "node scripts/copy-pdf-assets.mjs && next dev",
+    "build": "node scripts/copy-pdf-assets.mjs && next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "next": "16.4.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "pdfjs-dist": "6.4.299",
+    "konva": "^10.0.0",
+    "react-konva": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.9.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "16.4.2",
+    "vitest": "^3.2.0"
+  }
+}
