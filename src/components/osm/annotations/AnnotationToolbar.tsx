@@ -66,7 +66,7 @@ export default function AnnotationToolbar(p: Props) {
       {tab === "Annotation Tools" && <>
         <section className="tool-section drawing-section"><h3>Drawing Tools</h3><div className="drawing-grid">
           <ToolButton tool="pen" label="Pen" icon="pen" active={p.tool === "pen"} onTool={p.onTool}/>
-          <label className="color-tool-card" title="Annotation color"><input type="color" aria-label="Annotation color" value={p.style.color} onChange={e => p.onStyle({ ...p.style, color: e.target.value })}/><Icon name="chevron" size={14}/></label>
+          <label className="color-tool-card" title="Annotation color"><span className="color-tool-swatch"><input type="color" aria-label="Annotation color" value={p.style.color} onChange={e => p.onStyle({ ...p.style, color: e.target.value })}/><Icon name="chevron" size={14}/></span><span>Color</span></label>
           <ToolButton tool="highlight" label="Highlighter" icon="highlight" active={p.tool === "highlight"} onTool={p.onTool} className="yellow-icon"/>
           <ToolButton tool="erase" label="Eraser" icon="erase" active={p.tool === "erase"} onTool={p.onTool}/>
         </div><label className="thickness-control"><span>Thickness</span><input type="range" aria-label="Stroke width" min="1" max="8" step="1"

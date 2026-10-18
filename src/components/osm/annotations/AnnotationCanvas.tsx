@@ -33,8 +33,11 @@ function AnnotationCanvas(p: Props) {
     }
     event.evt.preventDefault();
     if (p.tool === "tick" || p.tool === "cross" || p.tool === "comment" || p.tool === "text" || p.tool === "stamp") {
+      const isStamp = p.tool === "tick" || p.tool === "cross" || p.tool === "stamp";
+      const stampSize = Math.min(p.width * 0.05, p.height);
       const annotation = createAnnotation(p.tool, p.pageNumber,
-        { ...at, width: p.tool === "text" ? 0.28 : 0.05, height: p.tool === "text" ? 0.09 : 0.04 }, p.style,
+        { ...at, width: isStamp ? stampSize / p.width : p.tool === "text" ? 0.28 : 0.05,
+          height: isStamp ? stampSize / p.height : p.tool === "text" ? 0.09 : 0.04 }, p.style,
         { text: p.tool === "stamp" ? p.options.stampText : p.tool === "comment" ? p.options.commentText : "", variant: p.options.stampVariant });
       if (p.tool === "comment" || p.tool === "text") p.onComment(annotation);
       else p.onAdd(annotation);

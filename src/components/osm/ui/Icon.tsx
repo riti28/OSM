@@ -19,7 +19,8 @@ const paths: Record<IconName, React.ReactNode> = {
   left: <path d="M20 12H4m6-6-6 6 6 6"/>,
   right: <path d="M4 12h16m-6-6 6 6-6 6"/>,
   select: <path d="m5 3 15 9-7 1 3 7-3 1-3-7-5 5z" fill="currentColor" strokeWidth="0"/>,
-  pan: <path d="M7 12V7a2 2 0 0 1 4 0v5-7a2 2 0 0 1 4 0v7-5a2 2 0 0 1 4 0v6-2a2 2 0 0 1 3 0v5c0 4-3 6-7 6-3 0-5-2-7-4l-4-5c-1-2 1-4 3-2l2 2"/>,
+  pan: <><path d="M18 11V7a2 2 0 0 0-4 0v3M14 10V4a2 2 0 0 0-4 0v6M10 10V6a2 2 0 0 0-4 0v8"/>
+    <path d="M18 8a2 2 0 0 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.5l-3.6-4.4a2 2 0 0 1 3-2.6L8 15"/></>,
   highlight: <><path d="m7 14 10-11 4 4-10 11zM7 14l4 4-4 3H3l2-5z" fill="currentColor" strokeWidth="1"/><path d="m13 7 4 4"/></>,
   erase: <><path d="m4 14 10-11 7 7-10 11H8zM8 10l7 7M11 21h10"/></>,
   rectangle: <rect x="4" y="4" width="16" height="16" rx="1"/>,

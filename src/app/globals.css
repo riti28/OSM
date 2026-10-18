@@ -123,11 +123,11 @@ summary::-webkit-details-marker{display:none}
 .drawing-grid{display:grid;grid-template-columns:1fr 1.35fr 1.15fr 1fr;gap:12px}
 .tool-panel .tool-button{border:1px solid var(--line);height:66px;background:linear-gradient(#fff,#fbfdff);font-size:10px;gap:7px;padding:6px 3px}
 .tool-panel .tool-button.active{border-color:#3687ff;background:linear-gradient(#e2f0ff,#d3eaff)}
-.color-tool-card{border:1px solid var(--line);border-radius:4px;display:flex;align-items:flex-start;justify-content:center;padding-top:11px;gap:7px;background:linear-gradient(#fff,#fbfdff);cursor:pointer}
+.color-tool-card{border:1px solid var(--line);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:66px;padding:6px 3px;gap:7px;font-size:10px;background:linear-gradient(#fff,#fbfdff);cursor:pointer}
 input[type=color]{width:25px;height:25px;padding:0;overflow:hidden;border:0;background:transparent;cursor:pointer}
 input[type=color]::-webkit-color-swatch-wrapper{padding:0}
 input[type=color]::-webkit-color-swatch{border:0;border-radius:50%}
-.color-tool-card>svg{margin-top:5px}
+.color-tool-swatch{display:flex;align-items:center;gap:7px}
 .thickness-control{display:flex;align-items:center;gap:14px;margin-top:20px;font-size:11px;line-height:23px;white-space:nowrap}
 .thickness-control input{min-width:0;flex:1;width:100%;padding:0;height:20px;accent-color:#006aff}
 .thickness-control>span:last-child{min-width:32px;text-align:right}
