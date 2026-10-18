@@ -6,6 +6,7 @@
     "assets": "node scripts/copy-pdf-assets.mjs",
     "dev": "node scripts/copy-pdf-assets.mjs && next dev",
     "build": "node scripts/copy-pdf-assets.mjs && next build",
+    "build:pages": "node scripts/copy-pdf-assets.mjs && node scripts/build-pages.mjs",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

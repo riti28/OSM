@@ -1,3 +1,3 @@
-import { redirect } from "next/navigation";
+import AnnotationDemo from "@/components/osm/AnnotationDemo";
 
-export default function Home() { redirect("/osm/annotation-demo"); }
+export default function Home() { return <AnnotationDemo />; }
