@@ -1,3 +1,3 @@
-import AnnotationDemo from "@/components/osm/AnnotationDemo";
+import AnnotationWorkspace from "@/components/osm/AnnotationWorkspace";
 
-export default function Home() { return <AnnotationDemo />; }
+export default function Home() { return <AnnotationWorkspace />; }

@@ -6,7 +6,7 @@ coverage/
 .env*
 !.env.example
 public/pdfjs/
-public/osm-demo/*.pdf
+public/**/*.pdf
 *.log
 test-results/
 .qa/

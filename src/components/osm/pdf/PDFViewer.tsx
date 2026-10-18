@@ -8,6 +8,8 @@ import type { PageInfo, Zoom } from "@/types/osm/pdf";
 import { DEFAULT_STYLES } from "@/lib/osm/annotations/annotationFactory";
 import { historyReducer, initialHistory } from "@/lib/osm/annotations/annotationHistory";
 import { deserializeAnnotations, groupAnnotations, serializeAnnotations } from "@/lib/osm/annotations/annotationSerializer";
+import { readSavedAnnotations, saveAnnotations } from "@/lib/osm/annotations/annotationStorage";
+import { forgetPDF, readRememberedPDF, rememberPDF } from "@/lib/osm/pdfDocumentStorage";
 import AnnotationToolbar from "../annotations/AnnotationToolbar";
 import PDFPage from "./PDFPage";
 import PDFToolbar from "./PDFToolbar";
@@ -17,7 +19,6 @@ import WorkspaceHeading from "../ui/WorkspaceHeading";
 import Icon from "../ui/Icon";
 import EmptyPDFWorkspace from "./EmptyPDFWorkspace";
 
-const STORAGE_KEY = "breathe4school-osm-demo-annotations";
 const EMPTY: Annotation[] = [];
 type Notice = { message: string; error?: boolean };
 function CommentEditor({ annotation, onSave, onCancel }: { annotation: Annotation & { type: "comment" | "text" }; onSave: (text: string) => void; onCancel: () => void }) {
@@ -33,10 +34,16 @@ function CommentEditor({ annotation, onSave, onCancel }: { annotation: Annotatio
     </form>
   </dialog>;
 }
-function Workspace({ document, documentId, pages, name, onOpen, retry, dirtyRef }: {
-  document: PDFDocumentProxy; documentId: string; pages: PageInfo[]; name: string; onOpen: () => void; retry: () => void; dirtyRef: React.RefObject<boolean>;
+function Workspace({ document, documentId, pages, name, onOpen, onClose, retry, dirtyRef, deviceNotice }: {
+  document: PDFDocumentProxy; documentId: string; pages: PageInfo[]; name: string; onOpen: () => void; onClose: () => void; retry: () => void; dirtyRef: React.RefObject<boolean>; deviceNotice: string | null;
 }) {
-  const [history, dispatch] = useReducer(historyReducer, initialHistory);
+  const [initialSave] = useState(() => {
+    try { return { json: readSavedAnnotations(localStorage, { id: documentId, pageCount: document.numPages }), error: null }; }
+    catch { return { json: null, error: "Could not restore saved annotations. Your existing save has not been changed. Use Import JSON if you have a backup." }; }
+  });
+  const [history, dispatch] = useReducer(historyReducer, initialSave.json, saved => saved
+    ? { ...initialHistory, present: groupAnnotations(deserializeAnnotations(saved, { id: documentId, pageCount: document.numPages }).annotations) }
+    : initialHistory);
   const annotations = history.present;
   const [tool, setTool] = useState<Tool>("pen");
   const [styles, setStyles] = useState(DEFAULT_STYLES);
@@ -49,8 +56,8 @@ function Workspace({ document, documentId, pages, name, onOpen, retry, dirtyRef 
   const [current, setCurrent] = useState(1);
   const [zoom, setZoom] = useState<Zoom>({ mode: "width" });
   const [container, setContainer] = useState({ width: 800, height: 900 });
-  const [notice, setNotice] = useState<Notice | null>(null);
-  const [savedJson, setSavedJson] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(() => initialSave.error ? { message: initialSave.error, error: true } : null);
+  const [savedJson, setSavedJson] = useState<string | null>(initialSave.json);
   const viewer = useRef<HTMLDivElement>(null), jsonInput = useRef<HTMLInputElement>(null);
   const documentInfo = useMemo(() => ({ id: documentId, pageCount: document.numPages }), [document, documentId]);
   const json = useMemo(() => serializeAnnotations(annotations, documentInfo), [annotations, documentInfo]);
@@ -128,7 +135,7 @@ function Workspace({ document, documentId, pages, name, onOpen, retry, dirtyRef 
     });
   }
   function save() {
-    try { localStorage.setItem(STORAGE_KEY, json); setSavedJson(json); setNotice({ message: "Annotations saved in this browser." }); }
+    try { saveAnnotations(localStorage, documentInfo, json); setSavedJson(json); setNotice({ message: "Annotations saved for this PDF on this device." }); }
     catch { setNotice({ error: true, message: "Save failed. Browser storage may be full or unavailable. Export JSON to keep a copy." }); }
   }
   function restore(text: string, persisted: boolean) {
@@ -141,7 +148,7 @@ function Workspace({ document, documentId, pages, name, onOpen, retry, dirtyRef 
     } catch (cause) { setNotice({ error: true, message: cause instanceof Error ? cause.message : "Could not load annotations." }); }
   }
   function load() {
-    try { const value = localStorage.getItem(STORAGE_KEY); if (value) restore(value, true); else setNotice({ message: "No saved annotations in this browser yet." }); }
+    try { const value = readSavedAnnotations(localStorage, documentInfo); if (value) restore(value, true); else setNotice({ message: "No saved annotations for this PDF on this device yet." }); }
     catch { setNotice({ error: true, message: "Browser storage is unavailable. Import a JSON backup instead." }); }
   }
   function exportJson() {
@@ -152,6 +159,7 @@ function Workspace({ document, documentId, pages, name, onOpen, retry, dirtyRef 
   }
   return <PortalShell onOpen={onOpen}>
     <WorkspaceHeading name={name} page={current} count={pages.length} navigate={navigate} documentId={documentId}/>
+    {deviceNotice && <div className="notice error" role="alert">{deviceNotice}</div>}
     {notice && <div className={"notice " + (notice.error ? "error" : "")} role={notice.error ? "alert" : "status"}>{notice.message}<button title="Dismiss message" aria-label="Dismiss message" onClick={() => setNotice(null)}>×</button></div>}
     <div className="workspace-body">
       <div className="viewer-column">
@@ -182,7 +190,7 @@ function Workspace({ document, documentId, pages, name, onOpen, retry, dirtyRef 
         canDelete={!!selected} onDelete={remove}/>
     </div>
     <footer className="workspace-footer"><span className="annotation-status">{total} annotations <span>·</span> Page {current} of {pages.length}</span>
-      <span className={"save-state " + (dirty ? "unsaved" : "saved")}>{dirty ? "Unsaved" : "Saved"}</span>
+      <span className={"save-state " + (dirty ? "unsaved" : "saved")}>{dirty ? hasChanges ? "Unsaved" : "No annotations" : "Saved"}</span>
       <div className="footer-actions"><button title="Load saved annotations from this browser" onClick={load}>Load annotations</button>
         <details className="document-menu"><summary title="Document actions">More<Icon name="chevron" size={14}/></summary><div>
           <button onClick={onOpen}><Icon name="folder" size={16}/>Open PDF</button>
@@ -190,6 +198,7 @@ function Workspace({ document, documentId, pages, name, onOpen, retry, dirtyRef 
           <button title="Import annotation JSON" onClick={() => jsonInput.current?.click()}><Icon name="book" size={16}/>Import JSON</button>
           <button disabled={!total} onClick={() => { if (window.confirm("Clear all annotations? You can undo this action.")) { dispatch({ type: "REPLACE", pages: {} }); setSelectedId(null); } }}>Clear annotations</button>
           <button onClick={() => { if (!hasChanges || window.confirm("Reload the PDF and discard unsaved changes?")) retry(); }}>Reload PDF</button>
+          <button onClick={onClose}><Icon name="cross" size={16}/>Close PDF</button>
         </div></details>
         <button className="primary" title="Save annotations in this browser" onClick={save}><Icon name="save" size={16}/>Save annotations</button></div>
     </footer>
@@ -205,12 +214,32 @@ function Workspace({ document, documentId, pages, name, onOpen, retry, dirtyRef 
   </PortalShell>;
 }
 
-export default function PDFViewer({ pdfUrl }: { pdfUrl: string }) {
-  const [local, setLocal] = useState<{ url: string; name: string } | null>(null);
-  const input = useRef<HTMLInputElement>(null), dirty = useRef(false);
-  const url = local?.url ?? pdfUrl;
+export default function PDFViewer() {
+  const [local, setLocal] = useState<{ url: string; name: string; file: Blob } | null>(null);
+  const [restoring, setRestoring] = useState(true);
+  const [deviceNotice, setDeviceNotice] = useState<string | null>(null);
+  const input = useRef<HTMLInputElement>(null), dirty = useRef(false), selection = useRef(0);
+  const url = local?.url ?? null;
   const { document, documentId, pages, error, retry } = usePDFDocument(url);
-  const name = local?.name ?? pdfUrl.split("/").pop()?.split("?")[0] ?? "Answer book.pdf";
+  const name = local?.name ?? "No PDF selected";
+  useEffect(() => {
+    let disposed = false;
+    const version = selection.current;
+    void readRememberedPDF().then(saved => {
+      if (!disposed && saved && selection.current === version) setLocal({ ...saved, url: URL.createObjectURL(saved.file) });
+    }).catch(() => {
+      if (!disposed) setDeviceNotice("Device storage is unavailable. You can still open a PDF and export your annotations as JSON.");
+    }).finally(() => { if (!disposed) setRestoring(false); });
+    return () => { disposed = true; };
+  }, []);
+  useEffect(() => {
+    if (!documentId || !local) return;
+    let disposed = false;
+    void rememberPDF(local.file, local.name).catch(() => {
+      if (!disposed) setDeviceNotice("This PDF is open, but could not be remembered on this device. Reopen it after refreshing; export JSON to back up your annotations.");
+    });
+    return () => { disposed = true; };
+  }, [documentId, local]);
   const revokeTimers = useRef(new Map<string, number>());
   useEffect(() => {
     if (!local) return;
@@ -221,12 +250,19 @@ export default function PDFViewer({ pdfUrl }: { pdfUrl: string }) {
     return () => { timers.set(url, window.setTimeout(() => { URL.revokeObjectURL(url); timers.delete(url); }, 0)); };
   }, [local]);
   const open = useCallback(() => input.current?.click(), []);
+  const close = useCallback(async () => {
+    if (dirty.current && !window.confirm("Close this PDF and discard unsaved annotations?")) return;
+    const version = selection.current;
+    try { await forgetPDF(); if (selection.current === version) { selection.current++; setLocal(null); setDeviceNotice(null); } }
+    catch { setDeviceNotice("Could not remove the remembered PDF. Try again, or clear this site's storage in your browser settings."); }
+  }, []);
   return <>
     <input ref={input} className="visually-hidden" type="file" accept=".pdf,application/pdf" aria-label="Open local PDF file"
       onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (!file) return;
         if (dirty.current && !window.confirm("Open another PDF and discard unsaved annotations?")) return;
-        setLocal({ url: URL.createObjectURL(file), name: file.name }); }} />
-    {document && documentId && pages ? <Workspace key={documentId} document={document} documentId={documentId} pages={pages} name={name} onOpen={open} retry={retry} dirtyRef={dirty} /> :
-      <EmptyPDFWorkspace name={name} error={error} onOpen={open} retry={retry}/>}
+        selection.current++; setRestoring(false); setDeviceNotice(null);
+        setLocal({ url: URL.createObjectURL(file), name: file.name, file }); }} />
+    {document && documentId && pages ? <Workspace key={documentId} document={document} documentId={documentId} pages={pages} name={name} onOpen={open} onClose={close} retry={retry} dirtyRef={dirty} deviceNotice={deviceNotice} /> :
+      <EmptyPDFWorkspace name={name} error={error ?? (!local && !restoring ? deviceNotice ?? undefined : undefined)} loading={restoring || !!local} onOpen={open} retry={local ? retry : open}/>}
   </>;
 }

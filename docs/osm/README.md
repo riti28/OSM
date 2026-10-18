@@ -1,9 +1,9 @@
-# PDF annotation prototype
+# PDF annotation workspace
 
 ## Workspace
-Run `pnpm install` and `pnpm dev`, then open `/osm/annotation-demo`. The root route redirects here. Node.js 22.13+ is recommended.
+Run `pnpm install` and `pnpm dev`, then open `/osm/annotations/` or `/`. Node.js 22.13+ is required; `.node-version` pins the tested version.
 
-Manually supply `public/osm-demo/sample-answer-book.pdf`. The missing sample shows a readable recovery screen with Retry and Open PDF. Local PDF files are opened with Blob URLs and are not uploaded. After a browser refresh, reselect a local PDF before loading its saved annotations. The reusable `PDFViewer` accepts a `pdfUrl: string`; remote URLs must allow browser CORS and PDF.js fetch/range requests.
+The workspace starts with **Open PDF**. It does not fetch or bundle any example document. Selected PDFs open through Blob URLs and remain on the device. Only the last successfully parsed PDF is remembered in IndexedDB; refresh reopens it automatically. Close PDF removes that remembered file while preserving the document's saved annotations. Storage failures show recovery guidance without preventing file selection or JSON export. Invalid files do not replace the last valid remembered PDF.
 
 The supplied E03/E04 UX references are stored in `docs/osm/ux/examiner/`. The annotation route follows E04: navy portal navigation, blue header, horizontal annotation toolbar, page thumbnails and grouped inspector cards. See [UX implementation notes](ux/IMPLEMENTATION.md). Reference screenshots are not embedded in the application.
 
@@ -25,14 +25,14 @@ The PDF layer is a separate PDF.js canvas below an absolutely positioned Konva s
 
 The local worker, WASM, CMaps and fonts are copied from the installed PDF.js package before dev/build by `scripts/copy-pdf-assets.mjs`. Generated assets are ignored in Git. Production deployments must include `public/pdfjs/`.
 
-## JSON and temporary persistence
+## JSON and device persistence
 The application owns schema version 1, with `documentId` (PDF fingerprint, with SHA-256 fallback), `pageCount`, and an annotation array. Each annotation has an ID, page number, normalized bounds, style and timestamps; pen/line/arrow add normalized points; comment/text add plain text; stamps add a circle/star variant and stamp text. Font size is normalized to page width. Konva stage JSON is never used.
 
-Save Annotations writes JSON to localStorage under `breathe4school-osm-demo-annotations`. Load Annotations restores it explicitly after refresh. Only one document's save occupies this prototype key; saving another PDF replaces that slot. PDF identity and page count are checked before restore. Export JSON downloads a portable backup; Import JSON validates and loads it, then Save persists it. Export alone does not change browser save status. Clear is undoable and does not overwrite the saved slot until Save is clicked.
+Save Annotations writes validated JSON to a separate localStorage key for each PDF fingerprint, under `breathe4school-osm-annotations:`. Marks restore automatically on opening the matching document. Saving one PDF never replaces another document's marks. The previous shared save remains readable for its matching PDF, without being deleted or loaded into an unrelated document. PDF identity and page count are checked before restore. Export JSON downloads a portable backup; Import JSON validates and loads it, then Save persists it. Export alone does not change browser save status. Clear is undoable and does not overwrite the saved slot until Save is clicked.
 
 Validation rejects malformed JSON, unsupported versions, mismatched documents, duplicate IDs, missing/out-of-bounds geometry, invalid pages/styles/text and excessive input sizes. Unknown fields are removed. No text is interpreted as HTML. Save status changes to Saved only after localStorage succeeds; save failures suggest JSON export. Unsaved changes warn on document switching and browser unload.
 
-This is temporary browser persistence, not a backend. No MongoDB, R2, authentication, grading, submission, audit, OCR or flattened PDF export is included.
+Storage is specific to the browser, device, and site origin. Clearing site data removes locally remembered documents and annotations. Keep JSON backups for work you need to retain or transfer. The app has no account, grading, submission, audit, OCR or flattened PDF export. Navigation includes only Open PDF, Annotation Tools, and working help; no unavailable dashboard or account controls are presented.
 
 ## Verification
 ```sh
@@ -53,9 +53,9 @@ Coordinate tests cover zoom/resize, rectangles, point arrays, boundaries, invali
 - Delete with toolbar and keyboard; undo and redo. Confirm input fields retain normal editing behavior.
 - Zoom 100 → 150 → 75%; use Fit Width and Fit Page; resize the browser. Check overlay alignment.
 - Go to page 4 and back to page 3; verify page-specific annotations.
-- Save, refresh, Load Annotations; verify exact positions and comment text.
+- Save, refresh; verify the PDF and its exact saved marks restore automatically. Save marks in a second PDF, then reopen the first and verify both saves remain separate.
 - Export/import JSON; try malformed JSON and JSON for another PDF. Confirm errors preserve current work.
-- Clear annotations; undo clear. Verify Saved/Unsaved status and missing/invalid PDF recovery.
+- Clear annotations; undo clear. Verify Saved/Unsaved status, invalid-PDF recovery, and Close PDF followed by refresh showing the file picker.
 - Test the production server (`pnpm build && pnpm start`), including the local worker and assets.
 
-Scanned-answer-book rendering and the full drawing checklist require the owner-supplied PDF. This repository does not generate a fake sample or commit student data.
+Scanned-answer-book rendering requires an owner-supplied PDF. This repository does not supply document content or commit student data.

@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Breathe4School · Annotation workspace",
-  description: "A focused PDF annotation prototype for school answer books.",
+  description: "Open your PDFs, annotate answer scripts, and save your work on this device.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

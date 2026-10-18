@@ -21,9 +21,9 @@ Zoomed 100 → 150 → 75 percent and resized 1440×1000 → 1280×900. Saved st
 The production server also loaded all 14 pages using the local PDF.js worker, imported the validated JSON, and saved the restored annotations successfully. Unsupported-schema JSON was rejected while preserving all seven annotations. Fit Width and Fit Page worked; the PDF canvas and Konva overlay had identical x, y, width and height in Fit Width. No browser error/warning logs were recorded during these production checks.
 
 ## Remaining owner QA
-Add anonymized sample-answer-book.pdf. Validate a real scanned answer book (including 10–50 pages and unusually large scans); browser QA used a public vector PDF. E03/E04 UX references have now been supplied and applied to the annotation workspace.
+Open an owner-supplied scanned answer book (including 10–50 pages and unusually large scans); browser QA used a public vector PDF. E03/E04 UX references have been supplied and applied to the annotation workspace.
 
-Local PDF selection must be repeated after refresh; saved annotation JSON is retained. Temporary localStorage has one document slot; use exported JSON for backups. Rotation UI and final PDF export remain outside this phase.
+The 18 October update below supersedes the earlier file-reselect and shared-save behavior. Rotation UI and final PDF export remain outside this workspace's scope.
 
 
 ## E04 UX update - 17 October 2026
@@ -38,3 +38,13 @@ Created 12 annotations spanning all 11 annotation types (including both stamp va
 Actual production screenshot: ignored .qa/ux-e04-workspace.png. The sample PDF remains absent; the empty state retains the E04 layout with disabled tools and an explicit Open PDF action.
 
 Lazy-rendering observers were scoped to their PDF/thumbnail scroll containers after preview capture exposed a window-intersection edge case. The production build and focused lint checks passed after this correction.
+
+## User-document workspace - 18 October 2026
+
+The owner confirmed that the app should remain a real annotation workspace using their PDFs. Removed the example-document URL, missing-sample instructions, bundled public sample instructions, placeholder portal navigation, account identity, and notification controls. Added the canonical `/osm/annotations/` route; Pages redirects older links. Navigation now contains working Open PDF, Annotation Tools, and Help & Shortcuts actions.
+
+The last successfully parsed PDF is remembered on the device with IndexedDB. Saved annotations occupy a validated key per document and restore automatically. Matching older saves remain readable; unrelated documents cannot overwrite or load each other's marks. Close PDF removes the remembered file while retaining saved annotations. Storage failures are reported and JSON backups remain available.
+
+ESLint passed, the static production build including TypeScript passed, and all 50 unit tests passed. Six new regression tests cover multiple-document isolation, mismatched saves, older-save compatibility, current-save precedence, corrupt storage, and write failure reporting.
+
+Browser checks on the static export: a fresh visit showed Open PDF without an error or example content; Help & Shortcuts opened and closed; Open PDF parsed 14 pages; JSON import and Save retained 12 annotations; refresh restored the PDF and all 12 marks in Saved state automatically; Close PDF followed by refresh returned to the empty picker. No browser warnings or errors were recorded. QA documents remained in ignored `.qa/` and were not included in the deployment.

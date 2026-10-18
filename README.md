@@ -1,6 +1,6 @@
 # Breathe4School OSM
 
-A focused Next.js PDF + Konva annotation foundation. No accounts, grading, database, or PDF export are included.
+Open your PDFs, annotate them, and save your work on your device. Built with Next.js, PDF.js, and Konva.
 
 ## Run
 
@@ -11,7 +11,7 @@ pnpm install
 pnpm dev
 ```
 
-Open http://localhost:3000/osm/annotation-demo. Add your anonymized sample at `public/osm-demo/sample-answer-book.pdf`, or use **Open PDF** to choose a local file. Local PDFs stay in the browser and are ignored by Git.
+Open http://localhost:3000/osm/annotations/ and choose **Open PDF**. No example document is bundled or requested. Your last valid PDF is remembered in IndexedDB and reopened after refresh. Saved annotations are restored separately for each document. **More → Close PDF** removes the remembered file; JSON export/import provides portable annotation backups. Documents are never uploaded.
 
 ```sh
 pnpm lint
@@ -21,13 +21,13 @@ pnpm build
 pnpm start
 ```
 
-Development and production builds copy the installed PDF.js worker, fonts, CMaps, and WASM assets into ignored `public/pdfjs/`. No CDN is used. Deploy that generated directory alongside the Next.js build. See [prototype documentation](docs/osm/README.md) for architecture, persistence, and the manual QA checklist.
+Development and production builds copy the installed PDF.js worker, fonts, CMaps, and WASM assets into ignored `public/pdfjs/`. No CDN is used. Deploy that generated directory alongside the Next.js build. See [workspace documentation](docs/osm/README.md) for architecture, persistence, and the manual QA checklist.
 
 See [verification results](docs/osm/verification.md) for the checks performed and remaining scanned-document QA.
 
 ## Cloudflare Pages
 
-Run `pnpm build:pages` to export the app into `out/`. Both `/` and `/osm/annotation-demo/` open the annotation workspace. The export includes the installed PDF.js worker, fonts, CMaps, and WASM assets. It needs no Node.js server at runtime.
+Run `pnpm build:pages` to export the app into `out/`. Both `/` and `/osm/annotations/` open the annotation workspace. Existing `/osm/annotation-demo/` links redirect on Pages through `public/_redirects`. The export includes the installed PDF.js worker, fonts, CMaps, and WASM assets. It needs no Node.js server at runtime.
 
 For a Git-connected Pages project, use:
 
